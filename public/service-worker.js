@@ -1,7 +1,7 @@
 // RouteGuard Body — Service Worker (auto-versioned)
 // We read the ?v=BUILD_ID from the script URL to version caches automatically.
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
-const CACHE = `rg-${VERSION}`;
+const CACHE = \rg-${VERSION}-nav2`;
 
 // App shell to pre-cache (keep this list tiny)
 const APP_SHELL = [
@@ -36,43 +36,52 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
 
-  // 1) Navigations
+  // 1) SPA navigations → CACHE-FIRST index.html (reliable offline), update in background
   if (req.mode === 'navigate') {
     e.respondWith(
-      fetch(req).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put('/', copy));
-        return res;
-      }).catch(() => caches.match('/') || caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // 2) Built assets
-  if (url.pathname.startsWith('/assets/') || url.pathname.match(/\.(js|css)$/i)) {
-    e.respondWith(
-      caches.match(req).then(cached => {
-        const fetchThenCache = fetch(req).then(res => {
-          caches.open(CACHE).then(c => c.put(req, res.clone()));
-          return res;
-        });
-        return cached || fetchThenCache;
+      caches.match('/index.html').then((cached) => {
+        const online = fetch('/index.html')
+          .then((res) => {
+            caches.open(CACHE).then((c) => c.put('/index.html', res.clone()));
+            return res;
+          })
+          .catch(() => cached); // if offline, use cached
+        return cached || online; // if first time, use network, then cache
       })
     );
     return;
   }
 
-  // 3) Images
-  if (url.pathname.startsWith('/images/') || url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
+  // 2) Built assets (Vite) → cache-first + update in background
+  if (url.pathname.startsWith('/assets/') || url.pathname.match(/\.(js|css)$/i)) {
     e.respondWith(
-      caches.match(req).then(cached => cached || fetch(req).then(res => {
-        caches.open(CACHE).then(c => c.put(req, res.clone()));
-        return res;
-      }))
+      caches.match(req).then((cached) => {
+        const online = fetch(req).then((res) => {
+          caches.open(CACHE).then((c) => c.put(req, res.clone()));
+          return res;
+        });
+        return cached || online;
+      })
     );
     return;
   }
 
-  // 4) Default
+  // 3) Images/GIFs → cache-first
+  if (url.pathname.startsWith('/images/') || url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg)$/i)) {
+    e.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((res) => {
+          caches.open(CACHE).then((c) => c.put(req, res.clone()));
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // 4) Default → network, fallback to cache
   e.respondWith(fetch(req).catch(() => caches.match(req)));
+});
+
 });
