@@ -1,5 +1,6 @@
 import React from 'react'
 import ExerciseIllustration from './ExerciseIllustration.jsx'
+import Exercises from './pages/Exercises.jsx'
 
 const PLAN = [
   {
@@ -53,7 +54,7 @@ function useLocalStorage(key, initial){
 const todayISO = () => new Date().toISOString().slice(0,10);
 function nextIndex(i,len){ return (i+1)%len; }
 
-export default function App(){
+function Home(){
   const [dayIndex, setDayIndex] = useLocalStorage("rg_day_index", 0);
   const [logs, setLogs] = useLocalStorage(STORAGE_KEY, {});
   const [secondsLeft, setSecondsLeft] = useLocalStorage("rg_timer", 30*60);
@@ -74,6 +75,7 @@ export default function App(){
     if(!logs[today]) setLogs({ ...logs, [today]: { dayIndex, entries: [], started: Date.now(), durationSec: 0 } });
     setRunning(true);
   }
+  
   function pauseResume(){ setRunning(!running); }
   function resetTimer(){ setRunning(false); setSecondsLeft(30*60); }
 
@@ -200,3 +202,55 @@ export default function App(){
     </div>
   )
 }
+function AppRouter(){
+  const [route, setRoute] = React.useState(window.location.hash || '#/home');
+
+  React.useEffect(() => {
+    const onHash = () => setRoute(window.location.hash || '#/home');
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  function Nav(){
+    const link = (href, label) => (
+      <a
+        href={href}
+        style={{
+          padding:'6px 10px',
+          borderRadius:8,
+          textDecoration:'none',
+          border:'1px solid #cfe0ff',
+          background: (route===href ? '#eef5ff' : 'transparent'),
+          color:'#1b3a7a',
+          marginRight:8
+        }}
+      >{label}</a>
+    );
+    return (
+      <div style={{display:'flex', alignItems:'center', gap:8, margin:'0 auto 12px', maxWidth:960}}>
+        {link('#/home','Home')}
+        {link('#/exercises','Exercises')}
+      </div>
+    );
+  }
+
+  if (route === '#/exercises') {
+    return (
+      <div style={{fontFamily:'system-ui, sans-serif', padding:16, maxWidth:980, margin:'0 auto'}}>
+        <Nav/>
+        <Exercises/>
+      </div>
+    );
+  }
+
+  // Default: your original Home UI
+  return (
+    <div style={{fontFamily:'system-ui, sans-serif', padding:16, maxWidth:960, margin:'0 auto'}}>
+      <Nav/>
+      <Home/>
+    </div>
+  );
+}
+
+export default AppRouter;
+
