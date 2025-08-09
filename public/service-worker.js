@@ -1,7 +1,7 @@
 // RouteGuard Body — Service Worker (auto-versioned)
 // We read the ?v=BUILD_ID from the script URL to version caches automatically.
 const VERSION = new URL(self.location.href).searchParams.get('v') || 'dev';
-const CACHE = \rg-${VERSION}-nav2`;
+const CACHE = `rg-${VERSION}-nav2`;
 
 // App shell to pre-cache (keep this list tiny)
 const APP_SHELL = [
