@@ -1,5 +1,5 @@
 // RouteGuard Body — SW v2
-const CACHE = 'rg-v2';
+const CACHE = 'rg-v3';
 const APP_SHELL = [
   '/', '/index.html', '/manifest.webmanifest',
   '/images/icon-192-v2.png', '/images/icon-512-v2.png'
